@@ -1,15 +1,24 @@
 from dash import Dash, html, dcc, callback, Output, Input
 from pymongo import MongoClient
 import plotly.express as px
+import dash_mantine_components as dmc
 
 app = Dash()
 
 uri = "mongodb://localhost:27017/?directConnection=true"
 client = MongoClient(uri)
-db = client.get_database("data")
-countries = db.get_collection("countries")
+if "data" not in client.list_database_names():
+    raise RuntimeError("Couldn't retrieve data db")
+db = client["data"]
+
+if "countries" not in db.list_collection_names():
+    raise RuntimeError("Couldn't retrieve data db")
+countries = db["countries"]
 
 countryNames = [c["name"] for c in countries.find({}, {"name": 1})]
+if len(countryNames) == 0:
+    raise RuntimeError("Couldn't retrieve countryNames")
+
 app.layout = dmc.MantineProvider([
     html.H1(children='Country stats', style={'textAlign':'center'}),
     dcc.Dropdown(countryNames, 'Canada', id='select-country'),
