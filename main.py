@@ -21,11 +21,14 @@ if len(countryNames) == 0:
 
 app = Dash()
 
+def paper(children):
+    return dmc.Paper(children=children, radius="sm", p="md", shadow="md", withBorder=True)
+
 app.layout = dmc.MantineProvider([
-    dmc.Title('Country stats', style={'textAlign':'center'}, order=1, mb=5),
+    dmc.Title('Country stats', style={'textAlign':'center'}, order=2, m="md"),
     dmc.Grid(
         children = [
-            dmc.GridCol(dmc.Select(data=countryNames, value='Canada', id='select-country'), span=3, p=20),
+            dmc.GridCol(paper(dmc.Select(data=countryNames, value='Canada', id='select-country')), span=3, p=20),
             dmc.GridCol(
                 dmc.LineChart(id='graph',
                     h=300,
@@ -36,7 +39,7 @@ app.layout = dmc.MantineProvider([
                     yAxisLabel="pop",
                     tooltipAnimationDuration=50,
                     valueFormatter={"function": "sciNotaFormatter"}
-                    ), 
+                    ),
                 span=9, p=20)
         ],
         mx=50,
