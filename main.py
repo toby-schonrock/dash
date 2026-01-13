@@ -13,9 +13,9 @@ db = client["data"]
 
 if "countries" not in db.list_collection_names():
     raise RuntimeError("Couldn't retrieve data db")
-countries = db["countries"]
+countriesCol = db["countries"]
 
-countryNames = pd.DataFrame(countries.find({}, {"name": 1}))["name"]
+countryNames = pd.DataFrame(countriesCol.find({}, {"name": 1}))["name"]
 if len(countryNames) == 0:
     raise RuntimeError("Couldn't retrieve countryNames")
 
@@ -27,7 +27,14 @@ def paper(children, **kwargs):
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
 
 optionsMenu = paper([
-    dmc.Select(data=countryNames, value='Canada', id='country-select'),
+    dmc.MultiSelect(
+        data=countryNames, 
+        value=['Germany'], 
+        id='country-select',
+        placeholder='search',
+        searchable=True,
+        clearable=True
+    ),
     paper(dmc.RadioGroup(
         id="key-radio",
         children=dmc.Group([
@@ -42,16 +49,17 @@ optionsMenu = paper([
 
 graph = dmc.LineChart(id='graph',
     h=300,
-    data=[{}],
+    data=[],
     dataKey="year",
     xAxisLabel="year",
+    withLegend=True,
     series=[],
     tooltipAnimationDuration=50,
     valueFormatter={"function": "numberFormatter"}
 )
 
 app.layout = dmc.MantineProvider([
-    dmc.Title('Country stats', style={'textAlign':'center'}, order=2, m="md"),
+    dmc.Title('Country stats', style={'textAlign':'center'}, order=2, m="lg"),
     dmc.Grid(
         children = [
             dmc.GridCol(optionsMenu, span=4, p="md"),
@@ -62,21 +70,25 @@ app.layout = dmc.MantineProvider([
     )
 ], forceColorScheme="dark")
 
+seriesColors = ["lime.5","cyan.5","blue.5","red.6","orange.6","yellow.5"]
+
 @callback(
     Output('graph', 'data'),
-    Input('country-select', 'value')
-)
-def updateGraphCountry(value):
-    if not value: return None
-    res = countries.find_one({"name": {"$eq": value}}, {"data": 1})["data"]
-    return res
-
-clientside_callback(
-    ClientsideFunction(namespace='clientside', function_name='updateGraphKey'),
     Output('graph', 'series'),
     Output('graph', 'yAxisLabel'),
+    Input('country-select', 'value'),
     Input('key-radio', 'value')
 )
+def updateGraph(countries, key):
+    if len(countries) == 0: return [[], [], ""]
+    res = countriesCol.find({"name": {"$in": countries}}, {"name" : 1, "data" : 1})
+
+    dfs = [pd.DataFrame(c["data"])[["year", key]].rename(columns={key:c["name"]}) for c in res]
+    data = pd.DataFrame(columns=["year"])
+    for df in dfs: data = pd.merge(data, df, on="year", how="outer", copy=False) ## join all countrys
+    
+    series = [{"name": country, "color" : seriesColors[i % len(seriesColors)]} for i, country in enumerate(countries)]
+    return [data.to_dict(orient="records"), series, key]
 
 if __name__ == '__main__':
     app.run(debug=False)
