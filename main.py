@@ -22,9 +22,15 @@ if len(countryNames) == 0:
 app = Dash()
 
 app.layout = dmc.MantineProvider([
-    html.H1(children='Country stats', style={'textAlign':'center'}),
-    dcc.Dropdown(countryNames, 'Canada', id='select-country'),
-    dcc.Graph(id='graph-content')
+    dmc.Title('Country stats', style={'textAlign':'center'}, order=1),
+    dmc.Group(
+        children = [
+            dcc.Dropdown(countryNames, 'Canada', id='select-country'),
+            dcc.Graph(id='graph-content')
+        ],
+        grow=True,
+        mx=50
+    )
 ])
 
 @callback(
@@ -32,8 +38,9 @@ app.layout = dmc.MantineProvider([
     Input('select-country', 'value')
 )
 def update_graph(value):
-    res = pd.DataFrame.from_dict(countries.find_one({"name": {"$eq": value}}, {"data": 1})["data"])
-    return px.line({"pop": res["pop"], "year": res["year"]}, x='year', y='pop')
+    if not value: return None 
+    res = countries.find_one({"name": {"$eq": value}}, {"data": 1})["data"]
+    return px.line(res, x='year', y='pop')
 
 if __name__ == '__main__':
     app.run(debug=False)
