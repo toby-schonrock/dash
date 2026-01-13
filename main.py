@@ -22,25 +22,37 @@ if len(countryNames) == 0:
 app = Dash()
 
 app.layout = dmc.MantineProvider([
-    dmc.Title('Country stats', style={'textAlign':'center'}, order=1),
-    dmc.Group(
+    dmc.Title('Country stats', style={'textAlign':'center'}, order=1, mb=5),
+    dmc.Grid(
         children = [
-            dcc.Dropdown(countryNames, 'Canada', id='select-country'),
-            dcc.Graph(id='graph-content')
+            dmc.GridCol(dmc.Select(data=countryNames, value='Canada', id='select-country'), span=3, p=20),
+            dmc.GridCol(
+                dmc.LineChart(id='graph',
+                    h=300,
+                    data=[{}], 
+                    dataKey="year", 
+                    xAxisLabel="year",
+                    series=[{"name": "pop"}],
+                    yAxisLabel="pop",
+                    tooltipAnimationDuration=50,
+                    valueFormatter={"function": "sciNotaFormatter"}
+                    ), 
+                span=9, p=20)
         ],
-        grow=True,
-        mx=50
+        mx=50,
+        align="flex-start"
     )
-])
+], forceColorScheme="dark")
 
 @callback(
-    Output('graph-content', 'figure'),
+    Output('graph', 'data'),
     Input('select-country', 'value')
 )
 def update_graph(value):
     if not value: return None 
     res = countries.find_one({"name": {"$eq": value}}, {"data": 1})["data"]
-    return px.line(res, x='year', y='pop')
+    # print(res)
+    return res
 
 if __name__ == '__main__':
     app.run(debug=False)
