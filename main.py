@@ -1,30 +1,14 @@
 import pandas as pd
-from dash import Dash, callback, Output, Input
+from dash import Dash, callback, Output, Input, State
 from dash.exceptions import PreventUpdate
 import plotly.express as px
 import dash_mantine_components as dmc
 
 from pymongo import MongoClient
 
-from insertFromCSV import insertFromCsv
+import database as db
 
-uri = "mongodb://localhost:27017/?directConnection=true"
-mongoClient = MongoClient(uri)
-if "data" not in mongoClient.list_database_names():
-    raise RuntimeError("Couldn't retrieve data db")
-db = mongoClient["data"]
-
-if "countries" not in db.list_collection_names():
-    raise RuntimeError("Couldn't retrieve data db")
-countriesCol = db["countries"]
-
-
-def getCountryNames() -> pd.Series:
-    countryNames = pd.DataFrame(countriesCol.find({}, {"name": 1}))
-    if len(countryNames.index) > 0:
-        return countryNames["name"]
-    return pd.Series()
-
+seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
 
 app = Dash()
 
@@ -37,7 +21,7 @@ def paper(children: any, **kwargs) -> dmc.Paper:
 
 optionsMenu = paper([
     dmc.MultiSelect(
-        data=getCountryNames(),
+        data=db.getCountryNames(),
         value=['Germany'],
         id='country-select',
         placeholder='search',
@@ -54,7 +38,12 @@ optionsMenu = paper([
         value="pop",
         size="sm"
     ), mx=0),
-    dmc.Button("Refresh data from csv", variant="subtle", id="refresh-button")
+    dmc.Group([
+        dmc.Button("Refresh db from csv",
+                   variant="subtle", id="refresh-button"),
+        dmc.Button("Delete selected countries from db",
+                   variant="light", id="delete-button", color="red")
+    ], justify="space-around")
 ], mt=0)
 
 graph = dmc.LineChart(id='graph',
@@ -80,8 +69,6 @@ app.layout = dmc.MantineProvider([
     )
 ], forceColorScheme="dark")
 
-seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
-
 
 @callback(
     Output('graph', 'data'),
@@ -94,13 +81,12 @@ def updateGraph(countries: list[str], key: str):
     if len(countries) == 0:
         return [[], [], ""]
 
-    res = countriesCol.find({"name": {"$in": countries}},
-                            {"name": 1, "data": 1})
+    res = db.getCountries(countries, ["name", "data"])
     dfs = [(c["name"], pd.DataFrame(c["data"]))
            for c in res]  # get country data as dfs
 
     # remove countries which were not found
-    countries = [name for name, df in dfs if name in countries]
+    countries = [name for name, _ in dfs if name in countries]
 
     dfs = [df.rename(columns={key: name})[["year", name]]
            for name, df in dfs]  # rename key to country
@@ -123,8 +109,8 @@ def updateGraph(countries: list[str], key: str):
     prevent_initial_call=True
 )
 def loadFromCsv(n_clicks):
-    insertFromCsv(mongoClient)
-    countryNames = getCountryNames()
+    db.loadFromCsv()
+    countryNames = db.getCountryNames()
     return countryNames
 
 
