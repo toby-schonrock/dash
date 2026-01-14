@@ -96,13 +96,16 @@ def updateGraph(countries: list[str], key: str):
 
     res = countriesCol.find({"name": {"$in": countries}},
                             {"name": 1, "data": 1})
-    dfs = [(c["name"], pd.DataFrame(c["data"])) for c in res] ## get country data as dfs
-    
-    countries = [name for name, df in dfs if name in countries] ## remove countries which were not found
-    
-    dfs = [df.rename(columns={key: name})[["year", name]] for name, df in dfs] ## rename key to country
+    dfs = [(c["name"], pd.DataFrame(c["data"]))
+           for c in res]  # get country data as dfs
 
-    data = pd.DataFrame(columns=["year"]) ## join dfs into a single df
+    # remove countries which were not found
+    countries = [name for name, df in dfs if name in countries]
+
+    dfs = [df.rename(columns={key: name})[["year", name]]
+           for name, df in dfs]  # rename key to country
+
+    data = pd.DataFrame(columns=["year"])  # join dfs into a single df
     for df in dfs:
         data = pd.merge(data, df, on="year",
                         how="outer", copy=False)
@@ -110,7 +113,7 @@ def updateGraph(countries: list[str], key: str):
     series = [{
         "name": country,
         "color": seriesColors[i % len(seriesColors)]
-    } for i, country in enumerate(countries)] ## make series with colours
+    } for i, country in enumerate(countries)]  # make series with colours
     return [data.to_dict(orient="records"), series, key]
 
 
