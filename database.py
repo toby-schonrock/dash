@@ -11,21 +11,23 @@ if "countries" not in db.list_collection_names():
     raise RuntimeError("Couldn't retrieve data db")
 countriesCol = db["countries"]
 
+
 def loadFromCsv():
     mongoClient.drop_database("data")
     db = mongoClient["data"]
-    col = db.create_collection("countries")
+    countriesCol = db.create_collection("countries")
 
     df = pd.read_csv('data.csv')
     objs = []
 
     for count in df.country.unique():
-        dff = df[df.country==count]
-        objs.append({"name": count, 
-            "continent": dff.loc[dff.index[0], "continent"], 
-            "data": dff[["year", "lifeExp", "pop", "gdpPercap"]].to_dict('records')})
-        
-    col.insert_many(objs)
+        dff = df[df.country == count]
+        objs.append({"name": count,
+                     "continent": dff.loc[dff.index[0], "continent"],
+                     "data": dff[["year", "lifeExp", "pop", "gdpPercap"]].to_dict('records')})
+
+    countriesCol.insert_many(objs)
+
 
 def getCountryNames() -> pd.Series:
     countryNames = pd.DataFrame(countriesCol.find({}, {"name": 1}))
@@ -33,7 +35,12 @@ def getCountryNames() -> pd.Series:
         return countryNames["name"]
     return pd.Series()
 
+
 def getCountries(countries: list[str], keys: list[str] = None) -> cursor.Cursor[object]:
     if keys:
         keys = {key: 1 for key in keys}
     return countriesCol.find({"name": {"$in": countries}}, keys)
+
+
+def deleteCountries(countries: list[str]) -> None:
+    countriesCol.delete_many({"name": {"$in": countries}})

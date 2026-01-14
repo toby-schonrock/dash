@@ -106,12 +106,26 @@ def updateGraph(countries: list[str], key: str):
 @callback(
     Output('country-select', 'data'),
     Input('refresh-button', 'n_clicks'),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
-def loadFromCsv(n_clicks):
+def loadFromCsv(n_clicks: int):
     db.loadFromCsv()
     countryNames = db.getCountryNames()
     return countryNames
+
+
+@callback(
+    Output('country-select', 'data', allow_duplicate=True),
+    Output('country-select', 'value'),
+    Input('delete-button', 'n_clicks'),
+    State('country-select', 'value'),
+    prevent_initial_call=True
+)
+def deleteCountries(n_clicks: int, countries: list[str]):
+    db.deleteCountries(countries)
+    countryNames = db.getCountryNames()
+    selectedCountries = [country for country in countries if country in countryNames]
+    return [countryNames, selectedCountries]
 
 
 if __name__ == '__main__':
