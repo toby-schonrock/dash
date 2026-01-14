@@ -1,28 +1,35 @@
 import pandas as pd
-from dash import Dash, ClientsideFunction, clientside_callback, callback, Output, Input
+from dash import Dash, callback, Output, Input
+from dash.exceptions import PreventUpdate
 import plotly.express as px
 import dash_mantine_components as dmc
 
 from pymongo import MongoClient
 
+from insertFromCSV import insertFromCsv
+
 uri = "mongodb://localhost:27017/?directConnection=true"
-client = MongoClient(uri)
-if "data" not in client.list_database_names():
+mongoClient = MongoClient(uri)
+if "data" not in mongoClient.list_database_names():
     raise RuntimeError("Couldn't retrieve data db")
-db = client["data"]
+db = mongoClient["data"]
 
 if "countries" not in db.list_collection_names():
     raise RuntimeError("Couldn't retrieve data db")
 countriesCol = db["countries"]
 
-countryNames = pd.DataFrame(countriesCol.find({}, {"name": 1}))["name"]
-if len(countryNames) == 0:
-    raise RuntimeError("Couldn't retrieve countryNames")
+
+def getCountryNames() -> pd.Series:
+    countryNames = pd.DataFrame(countriesCol.find({}, {"name": 1}))
+    if len(countryNames.index) > 0:
+        return countryNames["name"]
+    return pd.Series()
+
 
 app = Dash()
 
 
-def paper(children, **kwargs):
+def paper(children: any, **kwargs) -> dmc.Paper:
     kwargs.setdefault('m', "md")
     kwargs.setdefault('p', "md")
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
@@ -30,7 +37,7 @@ def paper(children, **kwargs):
 
 optionsMenu = paper([
     dmc.MultiSelect(
-        data=countryNames,
+        data=getCountryNames(),
         value=['Germany'],
         id='country-select',
         placeholder='search',
@@ -46,7 +53,8 @@ optionsMenu = paper([
         ]),
         value="pop",
         size="sm"
-    ), mx=0)
+    ), mx=0),
+    dmc.Button("Refresh data from csv", variant="subtle", id="refresh-button")
 ], mt=0)
 
 graph = dmc.LineChart(id='graph',
@@ -82,16 +90,19 @@ seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
     Input('country-select', 'value'),
     Input('key-radio', 'value')
 )
-def updateGraph(countries, key):
+def updateGraph(countries: list[str], key: str):
     if len(countries) == 0:
         return [[], [], ""]
 
     res = countriesCol.find({"name": {"$in": countries}},
                             {"name": 1, "data": 1})
-    dfs = [pd.DataFrame(c["data"])[["year", key]].rename(columns={key: c["name"]})
-           for c in res]
+    dfs = [(c["name"], pd.DataFrame(c["data"])) for c in res] ## get country data as dfs
+    
+    countries = [name for name, df in dfs if name in countries] ## remove countries which were not found
+    
+    dfs = [df.rename(columns={key: name})[["year", name]] for name, df in dfs] ## rename key to country
 
-    data = pd.DataFrame(columns=["year"])
+    data = pd.DataFrame(columns=["year"]) ## join dfs into a single df
     for df in dfs:
         data = pd.merge(data, df, on="year",
                         how="outer", copy=False)
@@ -99,8 +110,19 @@ def updateGraph(countries, key):
     series = [{
         "name": country,
         "color": seriesColors[i % len(seriesColors)]
-    } for i, country in enumerate(countries)]
+    } for i, country in enumerate(countries)] ## make series with colours
     return [data.to_dict(orient="records"), series, key]
+
+
+@callback(
+    Output('country-select', 'data'),
+    Input('refresh-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def loadFromCsv(n_clicks):
+    insertFromCsv(mongoClient)
+    countryNames = getCountryNames()
+    return countryNames
 
 
 if __name__ == '__main__':
