@@ -1,6 +1,5 @@
 import pandas as pd
-from dash import Dash, callback, Output, Input, State
-from dash.exceptions import PreventUpdate
+from dash import Dash, callback, clientside_callback, ClientsideFunction, Output, Input, State
 import plotly.express as px
 import dash_mantine_components as dmc
 
@@ -110,23 +109,30 @@ def updateGraph(countries: list[str], key: str):
 )
 def loadFromCsv(n_clicks: int):
     db.loadFromCsv()
-    countryNames = db.getCountryNames()
-    return countryNames
+    return db.getCountryNames()
 
 
 @callback(
     Output('country-select', 'data', allow_duplicate=True),
-    Output('country-select', 'value'),
     Input('delete-button', 'n_clicks'),
     State('country-select', 'value'),
     prevent_initial_call=True
 )
 def deleteCountries(n_clicks: int, countries: list[str]):
     db.deleteCountries(countries)
-    countryNames = db.getCountryNames()
-    selectedCountries = [country for country in countries if country in countryNames]
-    return [countryNames, selectedCountries]
+    return db.getCountryNames()
 
+
+clientside_callback(
+    ClientsideFunction(
+        namespace='clientside',
+        function_name='fixCountrySelections'
+    ),
+    Output('country-select', 'value'),
+    Input('country-select', 'data'),
+    State('country-select', 'value'),
+    prevent_initial_call=True
+)
 
 if __name__ == '__main__':
     app.run(debug=True)
