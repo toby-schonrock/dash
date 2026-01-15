@@ -1,0 +1,17 @@
+services:
+  database:
+    image: mongo:latest
+    container_name: mongo_db
+    volumes:
+      - mongo_data:/data/db
+
+  dash-app:
+    build: .
+    container_name: dash_app
+    ports:
+      - "8050:8050"
+    depends_on:
+      - database
+
+volumes:
+  mongo_data:

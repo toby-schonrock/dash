@@ -1,14 +1,9 @@
 import pandas as pd
 from pymongo import MongoClient, cursor
 
-uri = "mongodb://localhost:27017/?directConnection=true"
+uri = "mongodb://database:27017"
 mongoClient = MongoClient(uri)
-if "data" not in mongoClient.list_database_names():
-    raise RuntimeError("Couldn't retrieve data db")
 db = mongoClient["data"]
-
-if "countries" not in db.list_collection_names():
-    raise RuntimeError("Couldn't retrieve data db")
 countriesCol = db["countries"]
 
 
