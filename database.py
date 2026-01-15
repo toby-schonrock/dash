@@ -12,7 +12,7 @@ if "countries" not in db.list_collection_names():
 countriesCol = db["countries"]
 
 
-def loadFromCsv():
+def loadFromCsv() -> None:
     mongoClient.drop_database("data")
     db = mongoClient["data"]
     countriesCol = db.create_collection("countries")

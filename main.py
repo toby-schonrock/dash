@@ -1,72 +1,67 @@
 import pandas as pd
 from dash import Dash, callback, clientside_callback, ClientsideFunction, Output, Input, State
-import plotly.express as px
 import dash_mantine_components as dmc
 
-from pymongo import MongoClient
-
 import database as db
-
-seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
-
-app = Dash()
-
 
 def paper(children: any, **kwargs) -> dmc.Paper:
     kwargs.setdefault('m', "md")
     kwargs.setdefault('p', "md")
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
 
+def constructApp() -> Dash:
+    app = Dash()
+    optionsMenu = paper([
+        dmc.MultiSelect(
+            data=db.getCountryNames(),
+            value=['Germany'],
+            id='country-select',
+            placeholder='search',
+            searchable=True,
+            clearable=True
+        ),
+        paper(dmc.RadioGroup(
+            id="key-radio",
+            children=dmc.Group([
+                dmc.Radio("life expectancy", value="lifeExp"),
+                dmc.Radio("population", value="pop"),
+                dmc.Radio("gdp per capita", value="gdpPercap"),
+            ]),
+            value="pop",
+            size="sm"
+        ), mx=0),
+        dmc.Group([
+            dmc.Button("Reload db from csv",
+                    variant="subtle", id="reload-button"),
+            dmc.Button("Delete selected countries from db",
+                    variant="light", id="delete-button", color="red")
+        ], justify="space-around")
+    ], mt=0)
 
-optionsMenu = paper([
-    dmc.MultiSelect(
-        data=db.getCountryNames(),
-        value=['Germany'],
-        id='country-select',
-        placeholder='search',
-        searchable=True,
-        clearable=True
-    ),
-    paper(dmc.RadioGroup(
-        id="key-radio",
-        children=dmc.Group([
-            dmc.Radio("life expectancy", value="lifeExp"),
-            dmc.Radio("population", value="pop"),
-            dmc.Radio("gdp per capita", value="gdpPercap"),
-        ]),
-        value="pop",
-        size="sm"
-    ), mx=0),
-    dmc.Group([
-        dmc.Button("Refresh db from csv",
-                   variant="subtle", id="refresh-button"),
-        dmc.Button("Delete selected countries from db",
-                   variant="light", id="delete-button", color="red")
-    ], justify="space-around")
-], mt=0)
+    graph = dmc.LineChart(id='graph',
+                        h=300,
+                        data=[],
+                        dataKey="year",
+                        xAxisLabel="year",
+                        withLegend=True,
+                        series=[],
+                        tooltipAnimationDuration=50,
+                        valueFormatter={"function": "numberFormatter"}
+                        )
 
-graph = dmc.LineChart(id='graph',
-                      h=300,
-                      data=[],
-                      dataKey="year",
-                      xAxisLabel="year",
-                      withLegend=True,
-                      series=[],
-                      tooltipAnimationDuration=50,
-                      valueFormatter={"function": "numberFormatter"}
-                      )
+    app.layout = dmc.MantineProvider([
+        dmc.Title('Country stats', style={'textAlign': 'center'}, order=2, m="lg"),
+        dmc.Grid(
+            children=[
+                dmc.GridCol(optionsMenu, span=4, p="md"),
+                dmc.GridCol(graph, span=8, p="md")
+            ],
+            mx="lg",
+            align="flex-start"
+        )
+    ], forceColorScheme="dark")
 
-app.layout = dmc.MantineProvider([
-    dmc.Title('Country stats', style={'textAlign': 'center'}, order=2, m="lg"),
-    dmc.Grid(
-        children=[
-            dmc.GridCol(optionsMenu, span=4, p="md"),
-            dmc.GridCol(graph, span=8, p="md")
-        ],
-        mx="lg",
-        align="flex-start"
-    )
-], forceColorScheme="dark")
+    return app
 
 
 @callback(
@@ -79,7 +74,7 @@ app.layout = dmc.MantineProvider([
 def updateGraph(countries: list[str], key: str):
     if len(countries) == 0:
         return [[], [], ""]
-
+    
     res = db.getCountries(countries, ["name", "data"])
     dfs = [(c["name"], pd.DataFrame(c["data"]))
            for c in res]  # get country data as dfs
@@ -95,6 +90,8 @@ def updateGraph(countries: list[str], key: str):
         data = pd.merge(data, df, on="year",
                         how="outer", copy=False)
 
+    seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
+
     series = [{
         "name": country,
         "color": seriesColors[i % len(seriesColors)]
@@ -104,8 +101,8 @@ def updateGraph(countries: list[str], key: str):
 
 @callback(
     Output('country-select', 'data'),
-    Input('refresh-button', 'n_clicks'),
-    prevent_initial_call=True,
+    Input('reload-button', 'n_clicks'),
+    prevent_initial_call=True
 )
 def loadFromCsv(n_clicks: int):
     db.loadFromCsv()
@@ -135,4 +132,5 @@ clientside_callback(
 )
 
 if __name__ == '__main__':
+    app = constructApp()
     app.run(debug=True)
