@@ -1,8 +1,20 @@
+import os
 import pandas as pd
-from pymongo import MongoClient, cursor
+from pymongo import MongoClient, cursor, errors
 
-uri = "mongodb://database:27017"
-mongoClient = MongoClient(uri)
+mongoClient = None
+user = os.getenv("MONGO_USER")
+password = os.getenv("MONGO_PASS")
+uri = f"mongodb://{user}:{password}@database:27017/"
+try:
+    mongoClient = MongoClient(uri,
+                              serverSelectionTimeoutMS=2)
+    mongoClient.server_info()
+except Exception as err:
+    print("Failed to connect to server", type(err))
+    raise err
+
+
 db = mongoClient["data"]
 countriesCol = db["countries"]
 
