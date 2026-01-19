@@ -9,7 +9,9 @@ COPY . .
 
 EXPOSE 8050
 
+RUN chmod +x entrypoint.sh
+
 RUN useradd app
 USER app
 
-CMD ["python", "main.py"]
+CMD ["./entrypoint.sh"]

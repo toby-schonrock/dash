@@ -131,6 +131,8 @@ clientside_callback(
     prevent_initial_call=True
 )
 
+app = constructApp()
+server = app.server # global for gunicorn
+
 if __name__ == '__main__':
-    app = constructApp()
     app.run(host="0.0.0.0", port=8050, debug=True)
