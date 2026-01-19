@@ -16,10 +16,11 @@ services:
     networks:
       - app_net
     ports:
-      - "8050:8050"
+      - "8050:${PORT:-8050}"
     environment:
       - FLASK_SKIP_DOTENV=true ## disable flask .env tip
       - APP_ENV=${APP_ENV:-production}
+      - BASE_PATH=${BASE_PATH:-/}
       - MONGO_USER=${MONGO_ROOT_USER:?Variable missing}
       - MONGO_PASS=${MONGO_ROOT_PASSWORD:?Variable missing}
     depends_on:

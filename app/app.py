@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from dash import Dash, callback, clientside_callback, ClientsideFunction, Output, Input, State
 import dash_mantine_components as dmc
@@ -9,8 +10,7 @@ def paper(children: any, **kwargs) -> dmc.Paper:
     kwargs.setdefault('p', "md")
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
 
-def constructApp() -> Dash:
-    app = Dash()
+def constructPage(app) -> Dash:
     optionsMenu = paper([
         dmc.MultiSelect(
             data=db.getCountryNames(),
@@ -131,7 +131,8 @@ clientside_callback(
     prevent_initial_call=True
 )
 
-app = constructApp()
+BASE_PATH = os.getenv("BASE_PATH", "") + "/"
+app = constructPage(Dash(requests_pathname_prefix=BASE_PATH, routes_pathname_prefix=BASE_PATH))
 server = app.server # global for gunicorn
 
 if __name__ == '__main__':
