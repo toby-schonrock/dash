@@ -6,10 +6,12 @@ import dash_mantine_components as dmc
 
 import database as db
 
+
 def paper(children: any, **kwargs) -> dmc.Paper:
     kwargs.setdefault('m', "md")
     kwargs.setdefault('p', "md")
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
+
 
 def createLayout() -> dmc.MantineProvider:
     optionsMenu = paper([
@@ -33,27 +35,28 @@ def createLayout() -> dmc.MantineProvider:
         ), mx=0),
         dmc.Group([
             dmc.Button("Reload db from csv",
-                    variant="subtle", id="reload-button"),
+                       variant="subtle", id="reload-button"),
             dmc.Button("Delete selected countries from db",
-                    variant="light", id="delete-button", color="red")
+                       variant="light", id="delete-button", color="red")
         ], justify="space-around")
     ], mt=0)
 
     graph = dmc.LineChart(id='graph',
-                        h=300,
-                        data=[],
-                        dataKey="year",
-                        xAxisLabel="year",
-                        withLegend=True,
-                        series=[],
-                        tooltipAnimationDuration=50,
-                        valueFormatter={"function": "numberFormatter"}
-                        )
+                          h=300,
+                          data=[],
+                          dataKey="year",
+                          xAxisLabel="year",
+                          withLegend=True,
+                          series=[],
+                          tooltipAnimationDuration=50,
+                          valueFormatter={"function": "numberFormatter"}
+                          )
 
     return dmc.MantineProvider([
         dcc.Location(id='url', refresh=False),
         html.Div(id='output-sink', style={'display': 'none'}),
-        dmc.Title('Country stats', style={'textAlign': 'center'}, order=2, m="lg"),
+        dmc.Title('Country stats', style={
+                  'textAlign': 'center'}, order=2, m="lg"),
         dmc.Grid(
             children=[
                 dmc.GridCol(optionsMenu, span=4, p="md"),
@@ -75,7 +78,7 @@ def createLayout() -> dmc.MantineProvider:
 def updateGraph(countries: list[str], key: str):
     if len(countries) == 0:
         return [[], [], ""]
-    
+
     res = db.getCountries(countries, ["name", "data"])
     dfs = [(c["name"], pd.DataFrame(c["data"]))
            for c in res]  # get country data as dfs
@@ -91,7 +94,8 @@ def updateGraph(countries: list[str], key: str):
         data = pd.merge(data, df, on="year",
                         how="outer", copy=False)
 
-    seriesColors = ["lime.5", "cyan.5", "blue.5", "red.6", "orange.6", "yellow.5"]
+    seriesColors = ["lime.5", "cyan.5", "blue.5",
+                    "red.6", "orange.6", "yellow.5"]
 
     series = [{
         "name": country,
@@ -138,7 +142,8 @@ clientside_callback(
         namespace='clientside',
         function_name='updateURLFromInputs'
     ),
-    Output('output-sink', 'children'), ## prevents dash from duplicating history
+    # prevents dash from duplicating history
+    Output('output-sink', 'children'),
     Input('key-radio', 'value'),
     Input('country-select', 'value')
 )
@@ -156,9 +161,10 @@ clientside_callback(
 
 
 BASE_PATH = os.getenv("BASE_PATH", "") + "/"
-app = Dash(requests_pathname_prefix=BASE_PATH, routes_pathname_prefix=BASE_PATH)
+app = Dash(requests_pathname_prefix=BASE_PATH,
+           routes_pathname_prefix=BASE_PATH)
 app.layout = createLayout()
-server = app.server # global for gunicorn
+server = app.server  # global for gunicorn
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8050, debug=True)

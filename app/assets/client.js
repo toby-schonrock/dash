@@ -1,17 +1,17 @@
 var dmcfuncs = window.dashMantineFunctions = window.dashMantineFunctions || {};
 
-const formatter =new Intl.NumberFormat("en-UK", {notation: "compact"})
-dmcfuncs.numberFormatter = function(value) {
+const formatter = new Intl.NumberFormat("en-UK", { notation: "compact" })
+dmcfuncs.numberFormatter = function (value) {
     return formatter.format(value)
 };
 
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
     clientside: {
-        fixCountrySelections: function(availableCountries, selectedCountries) {
+        fixCountrySelections: function (availableCountries, selectedCountries) {
             return selectedCountries.filter((country) => availableCountries.includes(country))
         },
 
-        updateURLFromInputs: function(key, selectedCountries) {
+        updateURLFromInputs: function (key, selectedCountries) {
             const url = new URL(window.location.href);
             const currentUrlKey = url.searchParams.get('key');
             const currentUrlCountries = url.searchParams.getAll('country');
@@ -29,7 +29,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             return window.dash_clientside.no_update; // no update to prevent trigger loop
         },
 
-        updateInputsFromURL: function(search) {
+        updateInputsFromURL: function (search) {
             // alert("search triggerd")
             const urlParams = new URLSearchParams(search);
             key = urlParams.get('key');
