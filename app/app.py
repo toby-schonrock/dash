@@ -1,6 +1,7 @@
 import os
+import flask
 import pandas as pd
-from dash import Dash, callback, clientside_callback, ClientsideFunction, Output, Input, State
+from dash import Dash, callback, clientside_callback, ClientsideFunction, Output, Input, State, dcc, html
 import dash_mantine_components as dmc
 
 import database as db
@@ -10,7 +11,7 @@ def paper(children: any, **kwargs) -> dmc.Paper:
     kwargs.setdefault('p', "md")
     return dmc.Paper(children=children, radius="sm", shadow="md", withBorder=True, **kwargs)
 
-def constructPage(app) -> Dash:
+def createLayout() -> dmc.MantineProvider:
     optionsMenu = paper([
         dmc.MultiSelect(
             data=db.getCountryNames(),
@@ -27,7 +28,7 @@ def constructPage(app) -> Dash:
                 dmc.Radio("population", value="pop"),
                 dmc.Radio("gdp per capita", value="gdpPercap"),
             ]),
-            value="pop",
+            value='pop',
             size="sm"
         ), mx=0),
         dmc.Group([
@@ -49,7 +50,9 @@ def constructPage(app) -> Dash:
                         valueFormatter={"function": "numberFormatter"}
                         )
 
-    app.layout = dmc.MantineProvider([
+    return dmc.MantineProvider([
+        dcc.Location(id='url', refresh=False),
+        html.Div(id='output-sink', style={'display': 'none'}),
         dmc.Title('Country stats', style={'textAlign': 'center'}, order=2, m="lg"),
         dmc.Grid(
             children=[
@@ -60,8 +63,6 @@ def constructPage(app) -> Dash:
             align="flex-start"
         )
     ], forceColorScheme="dark")
-
-    return app
 
 
 @callback(
@@ -125,14 +126,38 @@ clientside_callback(
         namespace='clientside',
         function_name='fixCountrySelections'
     ),
-    Output('country-select', 'value'),
+    Output('country-select', 'value', allow_duplicate=True),
     Input('country-select', 'data'),
     State('country-select', 'value'),
     prevent_initial_call=True
 )
 
+
+clientside_callback(
+    ClientsideFunction(
+        namespace='clientside',
+        function_name='updateURLFromInputs'
+    ),
+    Output('output-sink', 'children'), ## prevents dash from duplicating history
+    Input('key-radio', 'value'),
+    Input('country-select', 'value')
+)
+
+
+clientside_callback(
+    ClientsideFunction(
+        namespace='clientside',
+        function_name='updateInputsFromURL'
+    ),
+    Output('key-radio', 'value'),
+    Output('country-select', 'value'),
+    Input('url', 'search')
+)
+
+
 BASE_PATH = os.getenv("BASE_PATH", "") + "/"
-app = constructPage(Dash(requests_pathname_prefix=BASE_PATH, routes_pathname_prefix=BASE_PATH))
+app = Dash(requests_pathname_prefix=BASE_PATH, routes_pathname_prefix=BASE_PATH)
+app.layout = createLayout()
 server = app.server # global for gunicorn
 
 if __name__ == '__main__':
