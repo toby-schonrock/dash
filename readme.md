@@ -1,35 +1,52 @@
 ### Project Description
 
-This is an example dash project using docker and a mongo database to store data aswell as dash mantine for the components. It was built up from the [dash minimal example](https://dash.plotly.com/minimal-app) and also uses the [data from the example](https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv).
+This is an example **Dash** project using **Docker** and a **MongoDB** database to store data, featuring **Dash Mantine Components** for the UI. It utilizes this [Gapminder dataset](https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv).
 
-It provides a webpage where the user can view the data in the database on a graph, allowing you to select multiple countries and which data you would like to see. It also implements to simple CRUD instructions to either delete selected countries from the live database or reset the database by loading the original data from the csv.
+The application provides a web interface where users can visualize database records on a graph, with support for selecting multiple countries and specific data metrics. It also implements **two simple CRUD operations**: 
+1. Delete selected countries from the live database.
+2. Reset the database by reloading the original data from the CSV.
 
-A live version of this project is hosted at https://schonrocks.com/tobias/demo/dash/
+**Live Demo:** [schonrocks.com/tobias/demo/dash/](https://schonrocks.com/tobias/demo/dash/)
 
 ![Siteimage](./images/site.png)
 
-As shown on the callback graph below it uses clientside callbacks to track the inputs allowing search queries to be shared between users via the URL and the use of forward and back buttons to browse query history.
+#### Technical Details: Routing & Callbacks
+As shown in the callback graph below, the app uses **clientside callbacks** to sync inputs with the URL. This allows search queries to be shared between users via links and enables the use of browser forward/back buttons to navigate query history.
 
 ![CallbackGraphImage](./images/callbackGraph.png "Callback graph")
 
-### Deployment instructions
+---
 
-For the project only docker and git is required and can be installed for example on a debian system with `sudo apt install docker.io docker-compose-v2 git`
+### Deployment Instructions
 
-To deploy: 
-Clone the repository in your desired directory with `git clone https://github.com/toby-schonrock/dash.git` 
+**Prerequisites:**
+Only **Docker** and **Git** are required. For example, on a Debian/Ubuntu system, these can be installed with:
+`sudo apt install docker.io docker-compose-v2 git`
 
-Enter the root directory of the repo.
+**Setup Steps:**
 
-Create a .env file and set the username and password for the mongodb.
-```
-MONGO_ROOT_USER=#YOUR_USERNAME
-MONGO_ROOT_PASSWORD=#YOUR_PASSWORD
-```
-Optionally you can set the base path for the app and whether to deploy in development or production mode.
-```
-APP_ENV=development #default=production
-BASE_PATH=/demo/dashapp #default=/
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/toby-schonrock/dash.git
+   cd dash
+   ```
 
-Run `sudo docker compose up --build` to start the server and db (`-d` to detach ouput) and your app should be accesible at http://127.0.0.1:8050/{YOUR_BASE_PATH}
+2. **Configure Environment Variables:**
+   Create a `.env` file in the root directory and set your MongoDB credentials:
+   ```env
+   MONGO_ROOT_USER=YOUR_USERNAME
+   MONGO_ROOT_PASSWORD=YOUR_PASSWORD
+   ```
+   *Optional configuration:*
+   ```env
+   APP_ENV=development      # default: production
+   BASE_PATH=/demo/dashapp  # default: /
+   ```
+
+3. **Launch:**
+   Run the following command to start the server and database:
+   ```bash
+   sudo docker compose up --build
+   ```
+   *Note: Add `-d` to run in detached mode.* 
+   The app will be accessible at: `http://127.0.0.1:8050{YOUR_BASE_PATH}`
