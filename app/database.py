@@ -9,10 +9,10 @@ uri = f"mongodb://{user}:{password}@database:27017/"
 try:
     mongoClient = MongoClient(uri,
                               serverSelectionTimeoutMS=2)
-    mongoClient.server_info()
+    mongoClient.server_info() ## trigger exception if failed
 except Exception as err:
-    print("Failed to connect to server", type(err))
-    raise err
+    print("Failed to connect to database", type(err))
+    exit(1)
 
 
 db = mongoClient["data"]
